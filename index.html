@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Time to Die — v0.1d (Canvas Fallback)</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="hud" class="hud">
+    <div class="left">
+      <div>❤️ Health: <span id="health">100</span></div>
+      <div>🍗 Hunger: <span id="hunger">100</span> | 💧 Durst: <span id="thirst">100</span></div>
+      <div>🕒 Time: <span id="clock">12:00</span> <span id="phase">(Day)</span></div>
+      <div>📦 Inventar (I): <span id="inv-summary">leer</span></div>
+    </div>
+    <div class="right">
+      <div>🎮 Move: WASD • Interact: E • Build: B • Repair: R</div>
+      <div>🧰 Workbench (Q) • Save: F5 • Load: F9</div>
+      <div>🔧 Build: Wall (1 wood) • Loot Crate für Holz/Essen/Wasser</div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Click oder Taste drücken, um die Steuerung zu aktivieren.</div>
+
+  <div id="diag" class="diag">
+    <div>Keys: <span id="kW">W</span> <span id="kA">A</span> <span id="kS">S</span> <span id="kD">D</span> | <span id="kE">E</span> <span id="kB">B</span> <span id="kQ">Q</span> <span id="kI">I</span></div>
+    <div>FPS: <span id="fps">0</span> | Pos: <span id="pos">0,0</span> | Night: <span id="isNight">false</span></div>
+  </div>
+
+  <div class="pad" id="pad">
+    <button data-k="w">W</button>
+    <div class="row">
+      <button data-k="a">A</button>
+      <button data-k="s">S</button>
+      <button data-k="d">D</button>
+    </div>
+  </div>
+
+  <canvas id="game" tabindex="0"></canvas>
+  <script src="./src/main.js"></script>
+</body>
+</html>
