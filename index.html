@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Time to Die — v0.2b (Canvas, HUD Emojis)</title>
+  <title>Time to Die — v0.2b Hotfix (Canvas)</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -11,7 +11,8 @@
     <div class="card">
       <h1>Time to Die</h1>
       <p>Klick oder Taste zum Start (Edge‑sicher). Keine externen Libs.</p>
-      <button id="startBtn">Start</button>
+      <button id="startBtn" onclick="window.__start && window.__start()">Start</button>
+      <div class="hint">Falls der Button nicht reagiert: eine Taste drücken.</div>
     </div>
   </div>
 

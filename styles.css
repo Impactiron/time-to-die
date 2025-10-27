@@ -1,6 +1,5 @@
 *{box-sizing:border-box}html,body{margin:0;height:100%;background:#0b0d10;color:#e6e9ef;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
-canvas{display:block;width:100vw;height:100vh}
-/* HUD overlay with emojis + high contrast */
+canvas{display:block;width:100vw;height:100vh;pointer-events:none} /* disable until started */
 .hud{position:fixed;top:0;left:0;right:0;padding:10px 14px;display:flex;justify-content:space-between;gap:16px;z-index:8;
      background:linear-gradient(180deg,rgba(0,0,0,.70),rgba(0,0,0,0)); pointer-events:none}
 .hud .left,.hud .right{display:flex;gap:6px;flex-direction:column;max-width:48%;}
@@ -13,7 +12,7 @@ canvas{display:block;width:100vw;height:100vh}
 .pad .row{display:flex;gap:6px}
 .pad button{background:#2a3440;border:1px solid #3a4654;border-radius:10px;color:#e6e9ef;padding:8px 10px;font-weight:800;min-width:44px;cursor:pointer}
 .pad button.active{background:#2f95ff;color:#fff}
-/* Gate */
-.gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:50}
+.gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:50;pointer-events:auto}
 .gate .card{background:#10151b;border:1px solid #2a3440;border-radius:14px;padding:18px 22px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55)}
 .gate .card button{margin-top:8px;background:#2f95ff;border:none;border-radius:10px;padding:10px 16px;color:#fff;font-weight:800;cursor:pointer}
+.gate .card .hint{opacity:.8;font-size:12px;margin-top:6px}
