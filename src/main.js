@@ -66,6 +66,23 @@
     ctx.fill();
   }
 
+  function drawRoundedRect(x,y,w,h,r,fill){
+    // Fallback ohne ctx.roundRect (breit kompatibel)
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+    ctx.lineTo(x+w, y+h-r);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+    ctx.lineTo(x+r, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+    ctx.lineTo(x, y+r);
+    ctx.quadraticCurveTo(x, y, x+r, y);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
   function gameLoop(tPrev){
     let last=tPrev||performance.now(), frames=0, lastFPS=performance.now();
 
@@ -114,9 +131,7 @@
       // crates
       for(const c of state.crates){
         const px = c.pos.x + offx, py = c.pos.y + offy - 8;
-        // box
-        ctx.fillStyle = (c.type==='water') ? '#3b82f6' : (c.type==='food') ? '#b86b00' : '#8b5a2b';
-        ctx.beginPath(); ctx.roundRect(px-12, py-12, 24, 24, 3); ctx.fill();
+        drawRoundedRect(px-12, py-12, 24, 24, 3, (c.type==='water') ? '#3b82f6' : (c.type==='food') ? '#b86b00' : '#8b5a2b');
         // cross lines
         ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=2;
         ctx.beginPath(); ctx.moveTo(px-12,py); ctx.lineTo(px+12,py); ctx.moveTo(px,py-12); ctx.lineTo(px,py+12); ctx.stroke();
@@ -124,7 +139,6 @@
 
       // zombies
       for(const z of state.zombies){
-        // wander/chase simplified here
         const targetI = state.isNight ? state.player.i : z.i + (Math.random()-0.5)*0.02*delta;
         const targetJ = state.isNight ? state.player.j : z.j + (Math.random()-0.5)*0.02*delta;
         const vI = targetI - z.i, vJ = targetJ - z.j; const d = Math.hypot(vI,vJ)||1;
@@ -137,7 +151,7 @@
       // player
       const px = p.x + offx, py = p.y + offy - 10;
       // shadow
-      ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px, py+10, 12, 4, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px, py+10, 12, 4, 0, Math.PI*2); ctx.fill();
       // body
       ctx.fillStyle='#9ad1ff'; ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI*2); ctx.fill();
 
