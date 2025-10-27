@@ -3,28 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Time to Die — v0.2a (Canvas, no CDN)</title>
+  <title>Time to Die — v0.2b (Canvas, HUD Emojis)</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div id="gate" class="gate">
     <div class="card">
       <h1>Time to Die</h1>
-      <p>Klick oder Taste zum Start (Edge‑Sicher). Keine externen Bibliotheken erforderlich.</p>
+      <p>Klick oder Taste zum Start (Edge‑sicher). Keine externen Libs.</p>
       <button id="startBtn">Start</button>
     </div>
   </div>
 
+  <!-- FULL HUD with emojis (HTML overlay) -->
   <div id="hud" class="hud">
     <div class="left">
-      <div>❤️ Health: <span id="health">100</span></div>
-      <div>🍗 Hunger: <span id="hunger">100</span> | 💧 Durst: <span id="thirst">100</span></div>
-      <div>🕒 Time: <span id="clock">12:00</span> <span id="phase">(Day)</span></div>
-      <div>🪵 Wood: <span id="wood">0</span></div>
+      <div class="line"><span class="em">❤️</span> Health: <b id="health">100</b></div>
+      <div class="line"><span class="em">🍗</span> Hunger: <b id="hunger">100</b> <span class="sep">|</span> <span class="em">💧</span> Durst: <b id="thirst">100</b></div>
+      <div class="line"><span class="em">🕒</span> Time: <b id="clock">12:00</b> <span id="phase">(Day)</span></div>
+      <div class="line"><span class="em">🪵</span> Wood: <b id="wood">0</b> <span class="sep">|</span> <span class="em">📦</span> Inventar: <b id="inv">–</b></div>
     </div>
     <div class="right">
-      <div>WASD: Bewegung • E: Baum fällen • I: Inventar (Stub)</div>
-      <div>Biome: Wiese/Wald • Chunk‑Welt</div>
+      <div class="line">WASD: Bewegung • <b>E</b>: Baum fällen • <b>I</b>: Inventar (Stub)</div>
+      <div class="line">Biome: Wiese/Wald • Chunk‑Welt</div>
     </div>
   </div>
 

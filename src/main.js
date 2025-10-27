@@ -25,20 +25,6 @@
     ctx.beginPath(); ctx.moveTo(x,y-h/2); ctx.lineTo(x+w/2,y); ctx.lineTo(x,y+h/2); ctx.lineTo(x-w/2,y); ctx.closePath();
     ctx.fillStyle=fill; ctx.fill();
   }
-  function rrect(x,y,w,h,r,fill){
-    ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.lineTo(x+w-r, y);
-    ctx.quadraticCurveTo(x+w, y, x+w, y+r);
-    ctx.lineTo(x+w, y+h-r);
-    ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-    ctx.lineTo(x+r, y+h);
-    ctx.quadraticCurveTo(x, y+h, x, y+h-r);
-    ctx.lineTo(x, y+r);
-    ctx.quadraticCurveTo(x, y, x+r, y);
-    ctx.closePath();
-    ctx.fillStyle=fill; ctx.fill();
-  }
   function seedRand(x){ let t = x += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14)>>>0)/4294967296; }
   function valueNoise2D(ix,iy,scale){
     const x=ix/scale,y=iy/scale; const x0=Math.floor(x),y0=Math.floor(y),x1=x0+1,y1=y0+1;
@@ -59,7 +45,7 @@
   };
 
   function chunkKey(cx,cy){ return cx+','+cy; }
-  function worldToChunk(i,j){ const cx=Math.floor(i/CHUNK_TILES), cy=Math.floor(j/CHUNK_TILES); return {cx,cy, li:i-cx*CHUNK_TILES, lj:j-cy*CHUNK_TILES}; }
+  function worldToChunk(i,j){ const cx=Math.floor(i/CHUNK_TILES), cy=Math.floor(j/CHUNK_TILES); return {cx,cy, li:i-cx*CHUNK_TILES, lj=j-cy*CHUNK_TILES}; }
 
   function ensureChunk(cx,cy){
     const key=chunkKey(cx,cy); if(state.chunks.has(key)) return state.chunks.get(key);
@@ -215,7 +201,7 @@
       const f=state.floats[i];
       f.y -= 0.4*delta; f.alpha -= 0.015*delta;
       ctx.globalAlpha = Math.max(0,f.alpha);
-      ctx.fillStyle='#cde8ff'; ctx.font='bold 14px monospace'; ctx.fillText(f.text, f.x+offx, f.y+offy);
+      ctx.fillStyle='#cde8ff'; ctx.font='bold 14px system-ui, monospace'; ctx.fillText(f.text, f.x+offx, f.y+offy);
       ctx.globalAlpha = 1;
       if(f.alpha<=0) state.floats.splice(i,1);
     }
