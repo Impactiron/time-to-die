@@ -1,34 +1,43 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Time to Die — v0.1e (Canvas)</title>
-  <link rel="stylesheet" href="./styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Time to Die — Minimal Single-File</title>
+<style>
+  *{box-sizing:border-box}html,body{margin:0;height:100%;background:#0b0d10;color:#e6e9ef;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
+  #hud{position:fixed;inset:0 auto auto 0; padding:8px 12px; background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0)); pointer-events:none}
+  #hud .row{display:flex;gap:12px;flex-wrap:wrap}
+  #hud b{font-weight:800}
+  #diag{position:fixed; right:12px; bottom:12px; font-size:12px; background:rgba(20,24,30,.85); border:1px solid #2a3440; border-radius:10px; padding:8px 10px}
+  #diag .k.active{color:#2f95ff}
+  #toast{position:fixed; top:58px; left:50%; transform:translateX(-50%); background:#18222c; border:1px solid #2a3440; border-radius:10px; padding:8px 12px}
+  #pad{position:fixed; left:12px; bottom:12px; display:flex; flex-direction:column; gap:6px}
+  #pad .row{display:flex; gap:6px}
+  #pad button{background:#2a3440; border:1px solid #3a4654; border-radius:10px; color:#e6e9ef; padding:8px 10px; font-weight:800; min-width:44px; cursor:pointer}
+  #pad button.active{background:#2f95ff; color:#fff}
+  canvas{display:block; width:100vw; height:100vh; outline:none}
+</style>
 </head>
 <body>
-  <div id="hud" class="hud">
-    <div class="left">
-      <div>❤️ Health: <span id="health">100</span></div>
-      <div>🍗 Hunger: <span id="hunger">100</span> | 💧 Durst: <span id="thirst">100</span></div>
-      <div>🕒 Time: <span id="clock">12:00</span> <span id="phase">(Day)</span></div>
-      <div>📦 Inventar (I): <span id="inv-summary">leer</span></div>
-    </div>
-    <div class="right">
-      <div>🎮 Move: WASD • Interact: E • Build: B • Repair: R</div>
-      <div>🧰 Workbench (Q) • Save: F5 • Load: F9</div>
-      <div>🔧 Build: Wall (1 wood) • Loot Crate für Holz/Essen/Wasser</div>
+  <div id="hud">
+    <div class="row">
+      <div>❤️ Health: <b id="health">100</b></div>
+      <div>🍗 Hunger: <b id="hunger">100</b></div>
+      <div>💧 Durst: <b id="thirst">100</b></div>
+      <div>🕒 Time: <b id="clock">12:00</b> <span id="phase">(Day)</span></div>
     </div>
   </div>
 
-  <div id="toast" class="toast">Click oder Taste drücken, um die Steuerung zu aktivieren.</div>
+  <div id="toast">Click oder Taste drücken, um die Steuerung zu aktivieren.</div>
 
-  <div id="diag" class="diag">
-    <div>Keys: <span id="kW">W</span> <span id="kA">A</span> <span id="kS">S</span> <span id="kD">D</span> | <span id="kE">E</span> <span id="kB">B</span> <span id="kQ">Q</span> <span id="kI">I</span></div>
-    <div>FPS: <span id="fps">0</span> | Pos: <span id="pos">0,0</span> | Night: <span id="isNight">false</span></div>
+  <div id="diag">
+    Keys: <span id="kW" class="k">W</span> <span id="kA" class="k">A</span> <span id="kS" class="k">S</span> <span id="kD" class="k">D</span>
+    | <span id="kE" class="k">E</span> <span id="kB" class="k">B</span> <span id="kQ" class="k">Q</span> <span id="kI" class="k">I</span><br>
+    FPS: <span id="fps">0</span> | Pos: <span id="pos">0,0</span> | Night: <span id="isNight">false</span>
   </div>
 
-  <div class="pad" id="pad">
+  <div id="pad">
     <button data-k="w">W</button>
     <div class="row">
       <button data-k="a">A</button>
@@ -38,6 +47,151 @@
   </div>
 
   <canvas id="game" tabindex="0"></canvas>
-  <script src="./src/main.js"></script>
+
+<script>
+(function(){
+  const cvs = document.getElementById('game');
+  const ctx = cvs.getContext('2d');
+
+  function resize(){ cvs.width = innerWidth; cvs.height = innerHeight; }
+  addEventListener('resize', resize); resize();
+
+  const $ = id => document.getElementById(id);
+  const TILE_W = 64, TILE_H = 32, WORLD_W = 40, WORLD_H = 40;
+  const iso = (i,j)=>({x:(i-j)*(TILE_W/2), y:(i+j)*(TILE_H/2)});
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const fmtClock = m => { let h=Math.floor(m/60)%24, n=Math.floor(m%60); return (h<10?'0':'')+h+':'+(n<10?'0':'')+n; };
+
+  const state = {
+    player:{i:20,j:20,speed:6/60,health:100,hunger:100,thirst:100},
+    timeMinutes:12*60, isNight:false,
+    crates:[{i:18,j:20,type:'wood'},{i:22,j:19,type:'food'},{i:21,j:22,type:'water'}],
+    zombies:[{i:25,j:25,speed:3/60},{i:15,j:27,speed:3/60}]
+  };
+
+  // Precompute ground
+  const ground=[];
+  for(let i=0;i<WORLD_W;i++) for(let j=0;j<WORLD_H;j++){
+    const p=iso(i,j); ground.push({x:p.x,y:p.y,color: ((i+j)%2===0)?'#1b232b':'#1f2831'});
+  }
+
+  // Input
+  const toast=$('toast');
+  const down=new Set();
+  const diagKeys=['w','a','s','d','e','b','q','i'];
+  const keyEl={w:$('kW'),a:$('kA'),s:$('kS'),d:$('kD'),e:$('kE'),b:$('kB'),q:$('kQ'),i:$('kI')};
+  function mark(k,on){ keyEl[k] && keyEl[k].classList.toggle('active',on); }
+  function setKey(k,on){ if(diagKeys.includes(k)) mark(k,on); if(on) down.add(k); else down.delete(k); }
+  addEventListener('keydown', e => { const k=e.key.toLowerCase(); if(k==='f5'||k==='f9') e.preventDefault(); setKey(k,true); toast.style.display='none'; cvs.focus(); });
+  addEventListener('keyup',   e => setKey(e.key.toLowerCase(),false));
+  cvs.addEventListener('pointerdown', ()=>{ toast.style.display='none'; cvs.focus(); });
+
+  // On-screen pad
+  document.querySelectorAll('#pad button').forEach(btn=>{
+    const k=btn.getAttribute('data-k');
+    btn.addEventListener('pointerdown', e=>{ e.preventDefault(); setKey(k,true); btn.classList.add('active'); });
+    btn.addEventListener('pointerup',   e=>{ e.preventDefault(); setKey(k,false); btn.classList.remove('active'); });
+    btn.addEventListener('pointerleave',e=>{ e.preventDefault(); setKey(k,false); btn.classList.remove('active'); });
+  });
+
+  // Draw helpers
+  function diamond(x,y,w,h,fill){
+    ctx.beginPath();
+    ctx.moveTo(x, y - h/2);
+    ctx.lineTo(x + w/2, y);
+    ctx.lineTo(x, y + h/2);
+    ctx.lineTo(x - w/2, y);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+  function rrect(x,y,w,h,r,fill){
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+    ctx.lineTo(x+w, y+h-r);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+    ctx.lineTo(x+r, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+    ctx.lineTo(x, y+r);
+    ctx.quadraticCurveTo(x, y, x+r, y);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
+  // Loop
+  let frames=0, lastFPS=performance.now(), prev=performance.now();
+  function frame(now){
+    const delta = Math.max(0.0001,(now-prev)/16.6667); // ~60fps-normalisiert
+    prev = now; frames++; if(now-lastFPS>1000){ $('fps').textContent=frames; frames=0; lastFPS=now; }
+
+    // Sim
+    state.timeMinutes += 0.8*delta;
+    const hour = Math.floor((state.timeMinutes/60)%24);
+    state.isNight = hour>=20 || hour<6;
+    $('clock').textContent = fmtClock(state.timeMinutes);
+    $('phase').textContent = state.isNight ? '(Night)' : '(Day)';
+    $('isNight').textContent = state.isNight;
+
+    state.hunger = Math.max(0, state.hunger - 0.006*delta);
+    state.thirst = Math.max(0, state.thirst - 0.009*delta);
+    if(state.hunger===0) state.player.health = Math.max(0, state.player.health - 0.03*delta);
+    if(state.thirst===0) state.player.health = Math.max(0, state.player.health - 0.05*delta);
+    $('health').textContent = state.player.health.toFixed(0);
+    $('hunger').textContent = state.hunger.toFixed(0);
+    $('thirst').textContent = state.thirst.toFixed(0);
+
+    let di=0,dj=0; if(down.has('w')) dj-=1; if(down.has('s')) dj+=1; if(down.has('a')) di-=1; if(down.has('d')) di+=1;
+    if(di||dj){ const len=Math.hypot(di,dj); di/=len; dj/=len;
+      state.player.i = clamp(state.player.i + di*state.player.speed*delta, 1, WORLD_W-2);
+      state.player.j = clamp(state.player.j + dj*state.player.speed*delta, 1, WORLD_H-2);
+    }
+
+    // Camera
+    const p = iso(state.player.i,state.player.j);
+    const cx = cvs.width/2, cy = cvs.height/2+80;
+    const offx = cx - p.x, offy = cy - p.y;
+
+    // Render
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+
+    // Ground
+    for(const t of ground){ diamond(t.x+offx, t.y+offy, TILE_W, TILE_H, t.color); }
+
+    // Crates
+    for(const c of state.crates){
+      const q=iso(c.i,c.j), x=q.x+offx, y=q.y+offy-8;
+      rrect(x-12,y-12,24,24,3, c.type==='water'?'#3b82f6':(c.type==='food'?'#b86b00':'#8b5a2b'));
+      ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(x-12,y); ctx.lineTo(x+12,y); ctx.moveTo(x,y-12); ctx.lineTo(x,y+12); ctx.stroke();
+    }
+
+    // Zombies
+    for(const z of state.zombies){
+      const ti = state.isNight ? state.player.i : z.i + (Math.random()-0.5)*0.02*delta;
+      const tj = state.isNight ? state.player.j : z.j + (Math.random()-0.5)*0.02*delta;
+      const vi=ti-z.i, vj=tj-z.j, d=Math.hypot(vi,vj)||1;
+      z.i += (vi/d)*z.speed*delta; z.j += (vj/d)*z.speed*delta;
+      const q=iso(z.i,z.j), x=q.x+offx, y=q.y+offy-8;
+      ctx.fillStyle='#a6e22e'; ctx.beginPath(); ctx.arc(x,y,9,0,Math.PI*2); ctx.fill();
+    }
+
+    // Player
+    const px = p.x+offx, py = p.y+offy-10;
+    ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px,py+10,12,4,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#9ad1ff'; ctx.beginPath(); ctx.arc(px,py,10,0,Math.PI*2); ctx.fill();
+
+    // Night overlay
+    if(state.isNight){ ctx.fillStyle='rgba(0,0,16,0.45)'; ctx.fillRect(0,0,cvs.width,cvs.height); }
+
+    $('pos').textContent = state.player.i.toFixed(2)+','+state.player.j.toFixed(2);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
 </body>
 </html>
