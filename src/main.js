@@ -1,14 +1,10 @@
 (function(){
   const gate = document.getElementById('gate');
-  const startBtn = document.getElementById('startBtn');
   const cvs = document.getElementById('game');
-  const ctx = cvs.getContext('2d');
+  const ctx = cvs.getContext('2d', { alpha: false });
   const errBox = document.getElementById('err');
 
-  function showErr(msg){
-    errBox.classList.remove('hidden');
-    errBox.textContent = '⚠️ '+msg;
-  }
+  function showErr(msg){ errBox.classList.remove('hidden'); errBox.textContent = '⚠️ '+msg; }
 
   function resize(){ cvs.width=innerWidth; cvs.height=innerHeight; }
   addEventListener('resize', resize); resize();
@@ -19,7 +15,6 @@
   const TREE_DENS_WALD=0.18, TREE_DENS_WIESE=0.03, PLAYER_SPEED=6/60;
 
   const iso=(i,j)=>({x:(i-j)*(TILE_W/2), y:(i+j)*(TILE_H/2)});
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   function diamond(x,y,w,h,fill){ ctx.beginPath(); ctx.moveTo(x,y-h/2); ctx.lineTo(x+w/2,y); ctx.lineTo(x,y+h/2); ctx.lineTo(x-w/2,y); ctx.closePath(); ctx.fillStyle=fill; ctx.fill(); }
   function seedRand(x){ let t = x += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14)>>>0)/4294967296; }
   function valueNoise2D(ix,iy,scale){ const x=ix/scale,y=iy/scale; const x0=Math.floor(x),y0=Math.floor(y),x1=x0+1,y1=y0+1;
@@ -30,9 +25,7 @@
   const state={ player:{i:0,j:0,speed:PLAYER_SPEED,health:100,hunger:100,thirst:100},
     timeMinutes:12*60,isNight:false, wood:0, chunks:new Map(), floats:[] };
 
-  function chunkKey(cx,cy){ return cx+','+cy; }
-  function worldToChunk(i,j){ const cx=Math.floor(i/CHUNK_TILES), cy=Math.floor(j/CHUNK_TILES); return {cx,cy, li:i-cx*CHUNK_TILES, lj=j-cy*CHUNK_TILES}; }
-
+  function worldToChunk(i,j){ const cx=Math.floor(i/CHUNK_TILES), cy=Math.floor(j/CHUNK_TILES); return {cx,cy}; }
   function ensureChunk(cx,cy){
     const key=cx+','+cy; if(state.chunks.has(key)) return state.chunks.get(key);
     const trees=new Map();
@@ -56,16 +49,14 @@
 
   const down=new Set();
   function setupInput(){
-    try {
-      addEventListener('keydown', e=>{ const k=e.key.toLowerCase(); if(['w','a','s','d','e','i'].includes(k)){ down.add(k); markPad(k,true);} });
-      addEventListener('keyup',   e=>{ const k=e.key.toLowerCase(); if(['w','a','s','d','e','i'].includes(k)){ down.delete(k); markPad(k,false);} });
-      document.querySelectorAll('#pad button').forEach(btn=>{
-        const k=btn.dataset.k;
-        btn.addEventListener('pointerdown', e=>{ e.preventDefault(); down.add(k); markPad(k,true);} );
-        btn.addEventListener('pointerup',   e=>{ e.preventDefault(); down.delete(k); markPad(k,false);} );
-        btn.addEventListener('pointerleave',e=>{ e.preventDefault(); down.delete(k); markPad(k,false);} );
-      });
-    } catch(ex){ showErr('Input-Setup: '+ex.message); }
+    addEventListener('keydown', e=>{ const k=e.key.toLowerCase(); if(['w','a','s','d','e','i'].includes(k)){ down.add(k); markPad(k,true);} });
+    addEventListener('keyup',   e=>{ const k=e.key.toLowerCase(); if(['w','a','s','d','e','i'].includes(k)){ down.delete(k); markPad(k,false);} });
+    document.querySelectorAll('#pad button').forEach(btn=>{
+      const k=btn.dataset.k;
+      btn.addEventListener('pointerdown', e=>{ e.preventDefault(); down.add(k); markPad(k,true);} );
+      btn.addEventListener('pointerup',   e=>{ e.preventDefault(); down.delete(k); markPad(k,false);} );
+      btn.addEventListener('pointerleave',e=>{ e.preventDefault(); down.delete(k); markPad(k,false);} );
+    });
   }
   function markPad(k,on){ const el=document.querySelector(`[data-k="${k}"]`); el&&el.classList.toggle('active',on); }
 
@@ -78,9 +69,12 @@
     }
     return false;
   }
-  function spawnFloat(text, wi, wj){ const p=iso(wi,wj); state.floats.push({text, x:p.x, y:p.y-24, alpha:1}); }
+  function spawnFloat(text, wi, wj){ const p=(function(i,j){return {x:(i-j)*(TILE_W/2), y:(i+j)*(TILE_H/2)};})(wi,wj); state.floats.push({text, x:p.x, y:p.y-24, alpha:1}); }
 
+  let started=false;
   function start(){
+    if(started) return;
+    started=true;
     try{
       if(gate) gate.style.display='none';
       cvs.style.pointerEvents='auto';
@@ -88,21 +82,13 @@
       loop();
     }catch(ex){ showErr('Start-Fehler: '+ex.message); }
   }
-  window.__start = start; // inline fallback
+  window.__start = start;
 
-  // Robust start: any input anywhere
   ['click','pointerdown','touchstart','keydown'].forEach(ev=>{
-    addEventListener(ev, ()=>{ if(gate && gate.style.display!=='none') start(); }, {once:false});
+    addEventListener(ev, ()=>{ if(!started) start(); }, {once:false});
   });
-
-  // URL param ?autostart=1
-  try {
-    const p = new URLSearchParams(location.search);
-    if(p.get('autostart')==='1'){ setTimeout(()=>start(), 50); }
-  } catch{}
-
-  // Fallback timer: start after 2s if still not started
-  setTimeout(()=>{ if(gate && gate.style.display!=='none') start(); }, 2000);
+  try { if(new URLSearchParams(location.search).get('autostart')==='1'){ setTimeout(start, 50); } } catch{}
+  setTimeout(()=>{ if(!started) start(); }, 2000);
 
   let frames=0,last=performance.now(), tprev=performance.now();
   function loop(now){
@@ -112,8 +98,8 @@
       frames++; if(now-last>1000){ $('fps').textContent=frames; frames=0; last=now; }
 
       state.timeMinutes += 0.8*delta; const hour=Math.floor((state.timeMinutes/60)%24);
-      state.isNight = hour>=20 || hour<6; $('clock').textContent = fmtClock(state.timeMinutes);
-      $('phase').textContent = state.isNight? '(Night)':'(Day)'; $('isNight').textContent = state.isNight;
+      const isNight = hour>=20 || hour<6; $('clock').textContent = fmtClock(state.timeMinutes);
+      $('phase').textContent = isNight? '(Night)':'(Day)'; $('isNight').textContent = isNight;
 
       state.hunger = Math.max(0, (state.hunger??100) - 0.006*delta);
       state.thirst = Math.max(0, (state.thirst??100) - 0.009*delta);
@@ -125,7 +111,7 @@
 
       loadAroundPlayer();
 
-      const p=iso(state.player.i,state.player.j);
+      const p={x:(state.player.i-state.player.j)*(TILE_W/2), y:(state.player.i+state.player.j)*(TILE_H/2)};
       const cx=cvs.width/2, cy=cvs.height/2+80;
       const offx=cx - p.x, offy=cy - p.y;
 
@@ -133,13 +119,14 @@
 
       for(const ch of state.chunks.values()){
         for(let li=0; li<CHUNK_TILES; li++) for(let lj=0; lj<CHUNK_TILES; lj++){
-          const wi=ch.cx*CHUNK_TILES+li, wj=ch.cy*CHUNK_TILES+lj; const q=iso(wi,wj);
+          const wi=ch.cx*CHUNK_TILES+li, wj=ch.cy*CHUNK_TILES+lj;
+          const q={x:(wi-wj)*(TILE_W/2), y:(wi+wj)*(TILE_H/2)};
           const biome=valueNoise2D(wi,wj,BIOME_SCALE);
           const col = biome>0.55 ? (((wi+wj)%2===0)?'#15221b':'#18271f') : (((wi+wj)%2===0)?'#1b232b':'#1f2831');
           diamond(q.x+offx, q.y+offy, TILE_W, TILE_H, col);
         }
         for(const t of ch.trees.values()){
-          const q=iso(t.i,t.j), x=q.x+offx, y=q.y+offy-12;
+          const q={x:(t.i-t.j)*(TILE_W/2), y:(t.i+t.j)*(TILE_H/2)}, x=q.x+offx, y=q.y+offy-12;
           ctx.fillStyle='#2e7d32'; ctx.beginPath(); ctx.arc(x,y,12,0,Math.PI*2); ctx.fill();
           ctx.fillStyle='#3e2723'; ctx.fillRect(x-2, y, 4, 10);
         }
@@ -149,7 +136,7 @@
       ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px,py+10,12,4,0,0,Math.PI*2); ctx.fill();
       ctx.fillStyle='#9ad1ff'; ctx.beginPath(); ctx.arc(px,py,10,0,Math.PI*2); ctx.fill();
 
-      if(state.isNight){ ctx.fillStyle='rgba(0,0,16,0.45)'; ctx.fillRect(0,0,cvs.width,cvs.height); }
+      if(isNight){ ctx.fillStyle='rgba(0,0,16,0.45)'; ctx.fillRect(0,0,cvs.width,cvs.height); }
 
       for(let i=state.floats.length-1;i>=0;i--){
         const f=state.floats[i]; f.y -= 0.4*delta; f.alpha -= 0.015*delta;
