@@ -3,6 +3,12 @@
   const startBtn = document.getElementById('startBtn');
   const cvs = document.getElementById('game');
   const ctx = cvs.getContext('2d');
+  const errBox = document.getElementById('err');
+
+  function showErr(msg){
+    errBox.classList.remove('hidden');
+    errBox.textContent = '⚠️ '+msg;
+  }
 
   function resize(){ cvs.width=innerWidth; cvs.height=innerHeight; }
   addEventListener('resize', resize); resize();
@@ -28,7 +34,7 @@
   function worldToChunk(i,j){ const cx=Math.floor(i/CHUNK_TILES), cy=Math.floor(j/CHUNK_TILES); return {cx,cy, li:i-cx*CHUNK_TILES, lj=j-cy*CHUNK_TILES}; }
 
   function ensureChunk(cx,cy){
-    const key=chunkKey(cx,cy); if(state.chunks.has(key)) return state.chunks.get(key);
+    const key=cx+','+cy; if(state.chunks.has(key)) return state.chunks.get(key);
     const trees=new Map();
     for(let li=0; li<CHUNK_TILES; li++) for(let lj=0; lj<CHUNK_TILES; lj++){
       const wi=cx*CHUNK_TILES+li, wj=cy*CHUNK_TILES+lj;
@@ -50,21 +56,23 @@
 
   const down=new Set();
   function setupInput(){
-    addEventListener('keydown', e=>{ const k=e.key.toLowerCase(); if(['w','a','s','d','e','i'].includes(k)){ down.add(k); markPad(k,true);} });
-    addEventListener('keyup',   e=>{ const k=e.key.toLowerCase(); if(['w','a','s','d','e','i'].includes(k)){ down.delete(k); markPad(k,false);} });
-    document.querySelectorAll('#pad button').forEach(btn=>{
-      const k=btn.dataset.k;
-      btn.addEventListener('pointerdown', e=>{ e.preventDefault(); down.add(k); markPad(k,true);} );
-      btn.addEventListener('pointerup',   e=>{ e.preventDefault(); down.delete(k); markPad(k,false);} );
-      btn.addEventListener('pointerleave',e=>{ e.preventDefault(); down.delete(k); markPad(k,false);} );
-    });
+    try {
+      addEventListener('keydown', e=>{ const k=e.key.toLowerCase(); if(['w','a','s','d','e','i'].includes(k)){ down.add(k); markPad(k,true);} });
+      addEventListener('keyup',   e=>{ const k=e.key.toLowerCase(); if(['w','a','s','d','e','i'].includes(k)){ down.delete(k); markPad(k,false);} });
+      document.querySelectorAll('#pad button').forEach(btn=>{
+        const k=btn.dataset.k;
+        btn.addEventListener('pointerdown', e=>{ e.preventDefault(); down.add(k); markPad(k,true);} );
+        btn.addEventListener('pointerup',   e=>{ e.preventDefault(); down.delete(k); markPad(k,false);} );
+        btn.addEventListener('pointerleave',e=>{ e.preventDefault(); down.delete(k); markPad(k,false);} );
+      });
+    } catch(ex){ showErr('Input-Setup: '+ex.message); }
   }
   function markPad(k,on){ const el=document.querySelector(`[data-k="${k}"]`); el&&el.classList.toggle('active',on); }
 
   function tryChop(){
     const pi=state.player.i, pj=state.player.j; const {cx,cy}=worldToChunk(pi,pj); const radius=1.2;
     for(let x=cx-1;x<=cx+1;x++) for(let y=cy-1;y<=cy+1;y++){
-      const ch=state.chunks.get(chunkKey(x,y)); if(!ch) continue;
+      const ch=state.chunks.get(x+','+y); if(!ch) continue;
       for(const [id,t] of Array.from(ch.trees)){ const d=Math.hypot(t.i-pi,t.j-pj); if(d<=radius){
         ch.trees.delete(id); const gained = 1 + ((Math.random()*2)|0); state.wood += gained; $('wood').textContent=state.wood; spawnFloat(`+Wood ${gained}`, t.i, t.j); return true; } }
     }
@@ -73,68 +81,86 @@
   function spawnFloat(text, wi, wj){ const p=iso(wi,wj); state.floats.push({text, x:p.x, y:p.y-24, alpha:1}); }
 
   function start(){
-    gate.style.display='none';
-    cvs.style.pointerEvents='auto'; // now canvas can receive input
-    setupInput();
-    loop();
+    try{
+      if(gate) gate.style.display='none';
+      cvs.style.pointerEvents='auto';
+      setupInput();
+      loop();
+    }catch(ex){ showErr('Start-Fehler: '+ex.message); }
   }
-  window.__start = start; // fallback for inline onclick
-  startBtn.addEventListener('click', start);
-  addEventListener('keydown', e=>{ if(gate.style.display!=='none') start(); });
+  window.__start = start; // inline fallback
+
+  // Robust start: any input anywhere
+  ['click','pointerdown','touchstart','keydown'].forEach(ev=>{
+    addEventListener(ev, ()=>{ if(gate && gate.style.display!=='none') start(); }, {once:false});
+  });
+
+  // URL param ?autostart=1
+  try {
+    const p = new URLSearchParams(location.search);
+    if(p.get('autostart')==='1'){ setTimeout(()=>start(), 50); }
+  } catch{}
+
+  // Fallback timer: start after 2s if still not started
+  setTimeout(()=>{ if(gate && gate.style.display!=='none') start(); }, 2000);
 
   let frames=0,last=performance.now(), tprev=performance.now();
   function loop(now){
-    now = now || performance.now();
-    const delta = Math.max(0.0001,(now - tprev)/16.6667); tprev = now;
-    frames++; if(now-last>1000){ $('fps').textContent=frames; frames=0; last=now; }
+    try{
+      now = now || performance.now();
+      const delta = Math.max(0.0001,(now - tprev)/16.6667); tprev = now;
+      frames++; if(now-last>1000){ $('fps').textContent=frames; frames=0; last=now; }
 
-    state.timeMinutes += 0.8*delta; const hour=Math.floor((state.timeMinutes/60)%24);
-    state.isNight = hour>=20 || hour<6; $('clock').textContent = fmtClock(state.timeMinutes);
-    $('phase').textContent = state.isNight? '(Night)':'(Day)'; $('isNight').textContent = state.isNight;
+      state.timeMinutes += 0.8*delta; const hour=Math.floor((state.timeMinutes/60)%24);
+      state.isNight = hour>=20 || hour<6; $('clock').textContent = fmtClock(state.timeMinutes);
+      $('phase').textContent = state.isNight? '(Night)':'(Day)'; $('isNight').textContent = state.isNight;
 
-    state.hunger = Math.max(0, (state.hunger??100) - 0.006*delta);
-    state.thirst = Math.max(0, (state.thirst??100) - 0.009*delta);
-    $('health').textContent = 100; $('hunger').textContent = state.hunger.toFixed(0); $('thirst').textContent = state.thirst.toFixed(0);
+      state.hunger = Math.max(0, (state.hunger??100) - 0.006*delta);
+      state.thirst = Math.max(0, (state.thirst??100) - 0.009*delta);
+      $('health').textContent = 100; $('hunger').textContent = state.hunger.toFixed(0); $('thirst').textContent = state.thirst.toFixed(0);
 
-    let di=0,dj=0; if(down.has('w')) dj-=1; if(down.has('s')) dj+=1; if(down.has('a')) di-=1; if(down.has('d')) di+=1;
-    if(di||dj){ const len=Math.hypot(di,dj); di/=len; dj/=len; state.player.i += di*state.player.speed*delta; state.player.j += dj*state.player.speed*delta; }
-    if(down.has('e')) tryChop();
+      let di=0,dj=0; if(down.has('w')) dj-=1; if(down.has('s')) dj+=1; if(down.has('a')) di-=1; if(down.has('d')) di+=1;
+      if(di||dj){ const len=Math.hypot(di,dj); di/=len; dj/=len; state.player.i += di*state.player.speed*delta; state.player.j += dj*state.player.speed*delta; }
+      if(down.has('e')) tryChop();
 
-    loadAroundPlayer();
+      loadAroundPlayer();
 
-    const p=iso(state.player.i,state.player.j);
-    const cx=cvs.width/2, cy=cvs.height/2+80;
-    const offx=cx - p.x, offy=cy - p.y;
+      const p=iso(state.player.i,state.player.j);
+      const cx=cvs.width/2, cy=cvs.height/2+80;
+      const offx=cx - p.x, offy=cy - p.y;
 
-    ctx.clearRect(0,0,cvs.width,cvs.height);
+      ctx.clearRect(0,0,cvs.width,cvs.height);
 
-    for(const ch of state.chunks.values()){
-      for(let li=0; li<CHUNK_TILES; li++) for(let lj=0; lj<CHUNK_TILES; lj++){
-        const wi=ch.cx*CHUNK_TILES+li, wj=ch.cy*CHUNK_TILES+lj; const q=iso(wi,wj);
-        const biome=valueNoise2D(wi,wj,BIOME_SCALE);
-        const col = biome>0.55 ? (((wi+wj)%2===0)?'#15221b':'#18271f') : (((wi+wj)%2===0)?'#1b232b':'#1f2831');
-        diamond(q.x+offx, q.y+offy, TILE_W, TILE_H, col);
+      for(const ch of state.chunks.values()){
+        for(let li=0; li<CHUNK_TILES; li++) for(let lj=0; lj<CHUNK_TILES; lj++){
+          const wi=ch.cx*CHUNK_TILES+li, wj=ch.cy*CHUNK_TILES+lj; const q=iso(wi,wj);
+          const biome=valueNoise2D(wi,wj,BIOME_SCALE);
+          const col = biome>0.55 ? (((wi+wj)%2===0)?'#15221b':'#18271f') : (((wi+wj)%2===0)?'#1b232b':'#1f2831');
+          diamond(q.x+offx, q.y+offy, TILE_W, TILE_H, col);
+        }
+        for(const t of ch.trees.values()){
+          const q=iso(t.i,t.j), x=q.x+offx, y=q.y+offy-12;
+          ctx.fillStyle='#2e7d32'; ctx.beginPath(); ctx.arc(x,y,12,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle='#3e2723'; ctx.fillRect(x-2, y, 4, 10);
+        }
       }
-      for(const t of ch.trees.values()){
-        const q=iso(t.i,t.j), x=q.x+offx, y=q.y+offy-12;
-        ctx.fillStyle='#2e7d32'; ctx.beginPath(); ctx.arc(x,y,12,0,Math.PI*2); ctx.fill();
-        ctx.fillStyle='#3e2723'; ctx.fillRect(x-2, y, 4, 10);
+
+      const px=p.x+offx, py=p.y+offy-10;
+      ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px,py+10,12,4,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#9ad1ff'; ctx.beginPath(); ctx.arc(px,py,10,0,Math.PI*2); ctx.fill();
+
+      if(state.isNight){ ctx.fillStyle='rgba(0,0,16,0.45)'; ctx.fillRect(0,0,cvs.width,cvs.height); }
+
+      for(let i=state.floats.length-1;i>=0;i--){
+        const f=state.floats[i]; f.y -= 0.4*delta; f.alpha -= 0.015*delta;
+        ctx.globalAlpha = Math.max(0,f.alpha); ctx.fillStyle='#cde8ff'; ctx.font='bold 14px system-ui, monospace'; ctx.fillText(f.text, f.x+offx, f.y+offy); ctx.globalAlpha = 1;
+        if(f.alpha<=0) state.floats.splice(i,1);
       }
+
+      $('pos').textContent = state.player.i.toFixed(2)+','+state.player.j.toFixed(2);
+      requestAnimationFrame(loop);
+    }catch(ex){
+      showErr('Loop-Fehler: '+ex.message);
     }
-
-    const px=p.x+offx, py=p.y+offy-10;
-    ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px,py+10,12,4,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#9ad1ff'; ctx.beginPath(); ctx.arc(px,py,10,0,Math.PI*2); ctx.fill();
-
-    if(state.isNight){ ctx.fillStyle='rgba(0,0,16,0.45)'; ctx.fillRect(0,0,cvs.width,cvs.height); }
-
-    for(let i=state.floats.length-1;i>=0;i--){
-      const f=state.floats[i]; f.y -= 0.4*delta; f.alpha -= 0.015*delta;
-      ctx.globalAlpha = Math.max(0,f.alpha); ctx.fillStyle='#cde8ff'; ctx.font='bold 14px system-ui, monospace'; ctx.fillText(f.text, f.x+offx, f.y+offy); ctx.globalAlpha = 1;
-      if(f.alpha<=0) state.floats.splice(i,1);
-    }
-
-    $('pos').textContent = state.player.i.toFixed(2)+','+state.player.j.toFixed(2);
-    requestAnimationFrame(loop);
   }
 })();
