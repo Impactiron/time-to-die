@@ -3,19 +3,28 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Time to Die — PIXI v7</title>
+  <title>Time to Die — v0.2a (Chunks + Trees + Biomes)</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+  <div id="gate" class="gate">
+    <div class="card">
+      <h1>Time to Die</h1>
+      <p>Zum Starten klicken oder Taste drücken (Edge-Fallback).</p>
+      <button id="startBtn">Start</button>
+    </div>
+  </div>
+
   <div id="hud" class="hud">
     <div class="left">
       <div>❤️ Health: <span id="health">100</span></div>
       <div>🍗 Hunger: <span id="hunger">100</span> | 💧 Durst: <span id="thirst">100</span></div>
       <div>🕒 Time: <span id="clock">12:00</span> <span id="phase">(Day)</span></div>
-      <div>📦 Inventar: <span id="inv">leer</span></div>
+      <div>🪵 Wood: <span id="wood">0</span> | 📦 Inventar: <span id="inv">–</span></div>
     </div>
     <div class="right">
-      <div>WASD: Bewegung • E: Interact • B: Build</div>
+      <div>WASD: Bewegung • E: Interact (Baum fällen) • I: Inventar</div>
+      <div>Biome: Wiese/Wald • Chunk-Welt</div>
     </div>
   </div>
 
@@ -26,16 +35,17 @@
       <button data-k="s">S</button>
       <button data-k="d">D</button>
     </div>
+    <button data-k="e">E</button>
   </div>
 
   <div id="diag" class="diag">
-    FPS: <span id="fps">0</span> | Pos: <span id="pos">0,0</span> | Night: <span id="isNight">false</span>
+    FPS: <span id="fps">0</span> | Pos: <span id="pos">0,0</span> | Night: <span id="isNight">false</span> | Chunks: <span id="chunks">0</span>
   </div>
 
   <div id="err" class="err hidden"></div>
   <canvas id="game" tabindex="0"></canvas>
 
-  <!-- PIXI v7: breit kompatibel, kein top-level await nötig -->
+  <!-- PIXI v7 CDN -->
   <script defer src="https://cdn.jsdelivr.net/npm/pixi.js@7.4.0/dist/browser/pixi.min.js"></script>
   <script defer src="./src/main.js"></script>
 </body>

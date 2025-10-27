@@ -9,3 +9,8 @@ canvas{display:block;width:100vw;height:100vh}
 .pad button.active{background:#2f95ff;color:#fff}
 .err{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#2a0f12;border:1px solid #96333b;color:#ffdfe2;border-radius:12px;padding:14px 18px;z-index:50}
 .hidden{display:none}
+.gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:50}
+.gate .card{background:#10151b;border:1px solid #2a3440;border-radius:14px;padding:18px 22px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55)}
+.gate .card h1{margin:0 0 6px 0}
+.gate .card button{margin-top:8px;background:#2f95ff;border:none;border-radius:10px;padding:10px 16px;color:#fff;font-weight:800;cursor:pointer}
+.float{position:absolute;pointer-events:none;color:#cde8ff;font-weight:800;text-shadow:0 2px 6px rgba(0,0,0,.5)}
