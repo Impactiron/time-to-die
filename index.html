@@ -1,50 +1,109 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Time to Die — v0.2c Robust (Canvas)</title>
-  <link rel="stylesheet" href="./styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TTD — Start Diagnose (Single File)</title>
+<style>
+  html,body{margin:0;height:100%;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:#0b0d10;color:#e6e9ef}
+  .top{padding:10px;background:#1a1f26;border-bottom:1px solid #2a3440}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .tag{background:#2a3440;border:1px solid #3a4654;border-radius:999px;padding:4px 10px;font-size:12px}
+  .ok{color:#7df36b}.bad{color:#ff8a8a}
+  #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:50;pointer-events:auto}
+  #gate .card{background:#10151b;border:1px solid #2a3440;border-radius:14px;padding:18px 22px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.55)}
+  #gate .card button{margin-top:8px;background:#2f95ff;border:none;border-radius:10px;padding:10px 16px;color:#fff;font-weight:800;cursor:pointer}
+  #gate .hint{opacity:.8;font-size:12px;margin-top:6px}
+  #log{padding:10px;font-size:12px;white-space:pre-wrap;background:#0b0f14;border-top:1px solid #2a3440;height:160px;overflow:auto}
+  canvas{display:block;width:100vw;height:calc(100vh - 232px)}
+</style>
 </head>
 <body onkeydown="window.__start && window.__start()">
-  <div id="gate" class="gate">
-    <div class="card">
-      <h1>Time to Die</h1>
-      <p>Klick/Tippen oder Taste zum Start (Edge‑sicher). Keine externen Libs.</p>
-      <button id="startBtn" onclick="window.__start && window.__start()">Start</button>
-      <div class="hint">Alternativ: <code>?autostart=1</code> an die URL hängen.</div>
-    </div>
-  </div>
-
-  <div id="hud" class="hud">
-    <div class="left">
-      <div class="line"><span class="em">❤️</span> Health: <b id="health">100</b></div>
-      <div class="line"><span class="em">🍗</span> Hunger: <b id="hunger">100</b> <span class="sep">|</span> <span class="em">💧</span> Durst: <b id="thirst">100</b></div>
-      <div class="line"><span class="em">🕒</span> Time: <b id="clock">12:00</b> <span id="phase">(Day)</span></div>
-      <div class="line"><span class="em">🪵</span> Wood: <b id="wood">0</b> <span class="sep">|</span> <span class="em">📦</span> Inventar: <b id="inv">–</b></div>
-    </div>
-    <div class="right">
-      <div class="line">WASD: Bewegung • <b>E</b>: Baum fällen • <b>I</b>: Inventar (Stub)</div>
-      <div class="line">Biome: Wiese/Wald • Chunk‑Welt</div>
-    </div>
-  </div>
-
-  <div class="pad" id="pad">
-    <button data-k="w">W</button>
+  <div class="top">
     <div class="row">
-      <button data-k="a">A</button>
-      <button data-k="s">S</button>
-      <button data-k="d">D</button>
+      <b>Start-Diagnose</b>
+      <span id="t_html" class="tag">HTML: ?</span>
+      <span id="t_js"   class="tag">JS: ?</span>
+      <span id="t_ev"   class="tag">Events: ?</span>
+      <span id="t_raf"  class="tag">RAF: ?</span>
+      <span id="t_started" class="tag">Started: ?</span>
     </div>
-    <button data-k="e">E</button>
   </div>
 
-  <div id="diag" class="diag">
-    FPS: <span id="fps">0</span> | Pos: <span id="pos">0,0</span> | Night: <span id="isNight">false</span> | Chunks: <span id="chunks">0</span>
-    <div id="err" class="err hidden"></div>
+  <div id="gate">
+    <div class="card">
+      <h1>Time to Die — Start</h1>
+      <p>Klick/Tippen oder Taste zum Start. Alternativ <code>?autostart=1</code> anhängen.</p>
+      <button id="startBtn" onclick="window.__start && window.__start()">Start</button>
+      <div class="hint">Wenn nichts passiert, wirst du es unten im Log sehen.</div>
+    </div>
   </div>
 
-  <canvas id="game" tabindex="0"></canvas>
-  <script src="./src/main.js"></script>
+  <canvas id="cvs"></canvas>
+  <div id="log"></div>
+
+<script>
+(function(){
+  const qs = id => document.getElementById(id);
+  const log = (m)=>{ const el=qs('log'); el.textContent += m+"\n"; el.scrollTop = el.scrollHeight; };
+  const tag = (id, ok, txt=null)=>{ const el=qs(id); el.classList.remove('ok','bad'); el.classList.add(ok?'ok':'bad'); el.textContent = (txt?txt:el.textContent.split(':')[0])+': '+(ok?'✔︎':'✖︎'); };
+
+  tag('t_html', true);
+  tag('t_js', true);
+
+  const cvs = qs('cvs');
+  const ctx = cvs.getContext('2d');
+  function resize(){ cvs.width = innerWidth; cvs.height = Math.max(100, innerHeight - 232); }
+  addEventListener('resize', resize); resize();
+
+  let started = false;
+
+  function start(){
+    if(started) return;
+    started = true;
+    tag('t_started', true);
+    document.getElementById('gate').style.display='none';
+    cvs.style.outline = '2px solid #2f95ff';
+
+    // simple RAF anim to prove it runs
+    let t0 = performance.now(); let frames = 0; let lastFPS = t0;
+    let x=60,y=cvs.height/2, vx=2, r=22;
+    (function loop(now){
+      frames++;
+      if(now-lastFPS>1000){ tag('t_raf', true); log('FPS ~'+frames); frames=0; lastFPS=now; }
+      ctx.clearRect(0,0,cvs.width,cvs.height);
+      // grid
+      ctx.globalAlpha=0.2;
+      for(let i=0;i<cvs.width;i+=40){ ctx.fillRect(i,0,1,cvs.height); }
+      for(let j=0;j<cvs.height;j+=40){ ctx.fillRect(0,j,cvs.width,1); }
+      ctx.globalAlpha=1;
+      // ball
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle='#7df36b'; ctx.fill();
+      x+=vx; if(x<r || x>cvs.width-r) vx*=-1;
+      requestAnimationFrame(loop);
+    })(t0);
+  }
+  window.__start = start;
+
+  // event hooks
+  try {
+    ['click','pointerdown','touchstart','keydown'].forEach(ev=>{
+      addEventListener(ev, ()=>{ if(!started) { tag('t_ev', true); start(); } }, {once:false});
+    });
+  } catch(e){ log('Event-Error: '+e.message); tag('t_ev', false); }
+
+  // autostart param
+  try {
+    const p = new URLSearchParams(location.search);
+    if(p.get('autostart')==='1'){ log('Autostart-param'); setTimeout(start, 50); }
+  } catch(e){}
+
+  // safety timer after 2s
+  setTimeout(()=>{ if(!started){ log('Timer-Autostart after 2s'); start(); } }, 2000);
+
+  // prove RAF works even before start
+  requestAnimationFrame(()=>{ tag('t_raf', true, 'RAF'); });
+})();
+</script>
 </body>
 </html>
