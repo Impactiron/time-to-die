@@ -247,7 +247,7 @@
     }
     if(down.has("e")) tryInteract();
     if(down.has("i")||down.has("escape")){
-      toggleInventory(!invEl.classList.contains("hidden"));
+      toggleInventory(); // Öffnen/Schließen korrekt
       down.delete("i");down.delete("escape");
     }
 
