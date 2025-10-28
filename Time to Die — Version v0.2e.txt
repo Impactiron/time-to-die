@@ -1,0 +1,48 @@
+Time to Die — Version v0.2e (Inventar & Lootsystem)
+Release-Datum: 2025-10-28
+
+NEU
+- Inventar-Overlay (Taste I / ESC)
+  • 8 Slots (2 Reihen), stackbare Items
+  • Klick auf Item: Food/Wasser verwendbar (+25 Hunger / +25 Durst)
+  • Tooltip-Hinweise (Name/Sinn) – minimal gehalten
+
+- Loot-Kisten
+  • Spawnen zufällig pro Chunk (Wiese/Wald)
+  • Interaktion: Taste E
+  • Drop-Rates: 50% Holz, 30% Food, 20% Wasser
+  • Visuelles Feedback (“+Loot” Floating-Text)
+
+- Ressourcen / Stats
+  • Hunger & Durst ticken langsam runter (HUD live)
+  • Essen/Trinken füllt Werte auf (Range ~+25)
+  • Wood-Zähler im HUD synchronisiert mit Inventar
+
+- Engine & Start
+  • Stabiler Start (Klick / Touch / Taste / Autostart via ?autostart=1)
+  • Kein externes CDN, alles lokal (HTML/CSS/JS only)
+  • Fehlerbox (diag.err) für Runtime-Hinweise
+
+TECHNIK / CODE
+- Welt: isometrisches Grid, Chunksize 48, Noise-basierte Biome
+- Entities: Bäume (fällbar), Loot-Kisten (öffnen)
+- Input: WASD Bewegung, E Interaktion, I/ESC Inventar
+- Performance: einfache GC-freundliche Loops, Despawn ferner Chunks
+- UI: HUD (HTML), Inventar (HTML) + Game (Canvas) getrennt
+
+BEKANNT / LIMITS
+- Kein Speichersystem (Persistenz) – folgt in v0.2f+
+- Kein Drag&Drop in Slots (nur Klick-Use) – vorgesehen
+- Crafting & Platzieren von Strukturen noch nicht enthalten
+
+UPGRADE-HINWEISE
+- Dateien ersetzen:
+  index.html
+  styles.css
+  src/main.js
+- Hard Reload nach Deployment (Strg+F5 / Cmd+Shift+R)
+
+NÄCHSTE SCHRITTE (v0.2f – Vorschau)
+- Crafting-Basis (z. B. Workbench, Lagerfeuer, Wand)
+- Quickbar-Aktionen & Drag&Drop
+- Einfaches Speichersystem (LocalStorage)

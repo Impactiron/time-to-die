@@ -3,48 +3,65 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Time to Die — v0.2d (Canvas + Robust Start)</title>
-  <link rel="stylesheet" href="./styles.css">
+  <title>Time to Die — v0.2e (Canvas + Inventar + Loot)</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
+
 <body onkeydown="window.__start && window.__start()">
-  <div id="gate" class="gate" role="dialog" aria-modal="true" aria-label="Spielstart">
+
+  <!-- ───────────── Start-Gate ───────────── -->
+  <div id="gate" class="gate">
     <div class="card">
       <h1>Time to Die</h1>
-      <p>Klick/Tippen oder Taste zum Start (Edge‑sicher). Keine externen Libs.</p>
+      <p>Klick / Tippen / Taste zum Start (Edge-sicher)</p>
       <button id="startBtn" onclick="window.__start && window.__start()">Start</button>
-      <div class="hint">Alternativ: <code>?autostart=1</code> an die URL anhängen.</div>
+      <div class="hint">Alternativ <code>?autostart=1</code> anhängen</div>
     </div>
   </div>
 
+  <!-- ───────────── HUD ───────────── -->
   <div id="hud" class="hud">
     <div class="left">
       <div class="line"><span class="em">❤️</span> Health: <b id="health">100</b></div>
-      <div class="line"><span class="em">🍗</span> Hunger: <b id="hunger">100</b> <span class="sep">|</span> <span class="em">💧</span> Durst: <b id="thirst">100</b></div>
+      <div class="line"><span class="em">🍗</span> Hunger: <b id="hunger">100</b>
+        <span class="sep">|</span><span class="em">💧</span> Durst: <b id="thirst">100</b>
+      </div>
       <div class="line"><span class="em">🕒</span> Time: <b id="clock">12:00</b> <span id="phase">(Day)</span></div>
-      <div class="line"><span class="em">🪵</span> Wood: <b id="wood">0</b> <span class="sep">|</span> <span class="em">📦</span> Inventar: <b id="inv">–</b></div>
+      <div class="line"><span class="em">🪵</span> Wood: <b id="wood">0</b>
+        <span class="sep">|</span><span class="em">📦</span> Inventar: <b id="inv">–</b>
+      </div>
     </div>
     <div class="right">
-      <div class="line">WASD: Bewegung • <b>E</b>: Baum fällen • <b>I</b>: Inventar (Stub)</div>
-      <div class="line">Biome: Wiese/Wald • Chunk‑Welt</div>
+      <div class="line">WASD = Bewegung • <b>E</b> = Interaktion • <b>I</b> = Inventar</div>
+      <div class="line">Biome: Wiese / Wald • Chunk-Welt</div>
     </div>
   </div>
 
-  <div class="pad" id="pad" aria-hidden="false">
-    <button data-k="w" aria-label="W">W</button>
+  <!-- ───────────── On-Screen-Pad ───────────── -->
+  <div class="pad" id="pad">
+    <button data-k="w">W</button>
     <div class="row">
-      <button data-k="a" aria-label="A">A</button>
-      <button data-k="s" aria-label="S">S</button>
-      <button data-k="d" aria-label="D">D</button>
+      <button data-k="a">A</button>
+      <button data-k="s">S</button>
+      <button data-k="d">D</button>
     </div>
-    <button data-k="e" aria-label="E">E</button>
+    <button data-k="e">E</button>
   </div>
 
+  <!-- ───────────── Inventar-Overlay ───────────── -->
+  <div id="inventory" class="inventory hidden">
+    <h2>Inventar</h2>
+    <div id="slots" class="slots"></div>
+    <div class="hint">Klicke auf 🍗 oder 💧 zum Verwenden | I / ESC zum Schließen</div>
+  </div>
+
+  <!-- ───────────── Diagnostik-Box ───────────── -->
   <div id="diag" class="diag">
-    v0.2d • FPS: <span id="fps">0</span> | Pos: <span id="pos">0,0</span> | Night: <span id="isNight">false</span> | Chunks: <span id="chunks">0</span>
+    v0.2e • FPS: <span id="fps">0</span> | Pos: <span id="pos">0,0</span> | Chunks: <span id="chunks">0</span>
     <div id="err" class="err hidden"></div>
   </div>
 
-  <canvas id="game" tabindex="0" aria-label="Spielfeld"></canvas>
+  <canvas id="game" tabindex="0"></canvas>
   <script src="./src/main.js"></script>
 </body>
 </html>
